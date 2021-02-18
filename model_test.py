@@ -17,6 +17,9 @@ from utils.loss import compute_loss
 from utils.metrics import ap_per_class, ConfusionMatrix
 from utils.plots import plot_images, output_to_target, plot_study_txt
 from utils.torch_utils import select_device, time_synchronized
+from utils.utils import json_load
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def test(data,
@@ -86,6 +89,9 @@ def test(data,
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = data['test'] if opt.task == 'test' else data['val']  # path to val/test images
+        print(path)
+        print(f'imgsz:{imgsz}')
+        print(f'batch_size:{batch_size}')
         dataloader = create_dataloader(path, imgsz, batch_size, model.stride.max(), opt, pad=0.5, rect=True)[0]
 
     seen = 0
@@ -299,9 +305,20 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
+    config = json_load('./config.json')
+    DIR = config['DIR']
+    training_options = config['training_options']
+    data_config = config['data_config']
+    last_save_folder = os.listdir('./runs/train')
+    last_save_folder = last_save_folder[len(last_save_folder)-1]
+    last_save_folder_dir = os.path.join('./runs/train',last_save_folder, 'weights')
+    opt.weights = os.path.join(last_save_folder_dir, 'best.pt')
+    opt.data = os.path.join(DIR['ROOT_DIR'], DIR['DATASET_YALM'])
+    opt.batch_size = training_options['batch_size']
+    opt.img_size = training_options['img_size'][0]
+
     opt.save_json |= opt.data.endswith('coco.yaml')
     opt.data = check_file(opt.data)  # check file
-    print(opt)
 
     if opt.task in ['val', 'test']:  # run normally
         test(opt.data,
@@ -316,7 +333,7 @@ if __name__ == '__main__':
              opt.verbose,
              save_txt=opt.save_txt | opt.save_hybrid,
              save_hybrid=opt.save_hybrid,
-             save_conf=opt.save_conf,
+             # save_conf=opt.save_conf,
              )
 
     elif opt.task == 'study':  # run over a range of settings and save/plot

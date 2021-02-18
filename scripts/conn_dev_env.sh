@@ -1,0 +1,1 @@
+docker run -it --rm -p 8001:8000 -v $(pwd):/app mark-yolo5:latest /bin/bash

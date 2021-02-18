@@ -33,6 +33,7 @@ from utils.google_utils import attempt_download
 from utils.loss import compute_loss
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
 from utils.torch_utils import ModelEMA, select_device, intersect_dicts, torch_distributed_zero_first
+from utils.utils import json_load
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +66,10 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
     plots = not opt.evolve  # create plots
     cuda = device.type != 'cpu'
     init_seeds(2 + rank)
-    with open(opt.data) as f:
+    print(opt.data)
+    with open(opt.data, 'r', encoding='utf-8') as f:
         data_dict = yaml.load(f, Loader=yaml.FullLoader)  # data dict
+    print(data_dict)
     with torch_distributed_zero_first(rank):
         check_dataset(data_dict)  # check
     train_path = data_dict['train']
@@ -459,6 +462,18 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
+    config = json_load('./config.json')
+    TRAINING_OPTIONS = config['training_options']
+    DATA_CONFIG = config['data_config']
+    DIR = config['DIR']
+
+    opt.batch_size = TRAINING_OPTIONS['batch_size']
+    opt.img_size = TRAINING_OPTIONS['img_size']
+    opt.epochs = TRAINING_OPTIONS['epochs']
+    opt.weights = TRAINING_OPTIONS['pretrained_weights']
+    opt.name = TRAINING_OPTIONS['trained_weights_name']
+    opt.data = os.path.join(DIR['ROOT_DIR'], DIR['DATASET_YALM'])
+    opt.cfg = DIR['PRETRAINED_MODEL_DIR']
 
     # Set DDP variables
     opt.total_batch_size = opt.batch_size
