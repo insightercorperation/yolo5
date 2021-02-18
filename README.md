@@ -32,7 +32,7 @@ $ ./scripts/run_dev_server.sh
 ```
 
 **배포시**
-> VERSION 파일에서 버전 후 진행
+> VERSION 파일에서 버전 확인 후 진행
 
 ```bash
 $ ./scripts/build_prod.sh
